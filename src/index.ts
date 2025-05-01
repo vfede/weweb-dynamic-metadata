@@ -30,20 +30,49 @@ export default {
       return pattern.test(url);
     }
 
+    // async function requestMetadata(url, metaDataEndpoint) {
+    //   // Remove any trailing slash from the URL
+    //   const trimmedUrl = url.endsWith('/') ? url.slice(0, -1) : url;
+
+    //   // Split the trimmed URL by '/' and get the last part: The id
+    //   const parts = trimmedUrl.split('/');
+    //   const id = parts[parts.length - 1];
+
+    //   // Replace the placeholder in metaDataEndpoint with the actual id
+    //   const placeholderPattern = /{([^}]+)}/;
+    //   const metaDataEndpointWithId = metaDataEndpoint.replace(placeholderPattern, id);
+
+    //   // Fetch metadata from the API endpoint
+    //   const metaDataResponse = await fetch(metaDataEndpointWithId);
+    //   const metadata = await metaDataResponse.json();
+    //   return metadata;
+    // }
+
     async function requestMetadata(url, metaDataEndpoint) {
       // Remove any trailing slash from the URL
       const trimmedUrl = url.endsWith('/') ? url.slice(0, -1) : url;
-    
+
       // Split the trimmed URL by '/' and get the last part: The id
       const parts = trimmedUrl.split('/');
       const id = parts[parts.length - 1];
-    
+
       // Replace the placeholder in metaDataEndpoint with the actual id
       const placeholderPattern = /{([^}]+)}/;
       const metaDataEndpointWithId = metaDataEndpoint.replace(placeholderPattern, id);
-    
-      // Fetch metadata from the API endpoint
-      const metaDataResponse = await fetch(metaDataEndpointWithId);
+
+      // Construct the final URL
+      // const finalUrl = `https://lccdbeogxyozaxntzhqe.supabase.co/functions/v1/getMetaExperience/${id}`;
+
+      // Fetch metadata using the updated URL
+      const metaDataResponse = await fetch(metaDataEndpointWithId, {
+        method: 'POST',
+        headers: {
+          'Authorization': 'Bearer ' + env.SUPABASE_KEY,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ name: 'Functions' })
+      });
+
       const metadata = await metaDataResponse.json();
       return metadata;
     }
@@ -75,10 +104,10 @@ export default {
         .on('*', customHeaderHandler)
         .transform(source);
 
-    // Handle page data requests for the WeWeb app
+      // Handle page data requests for the WeWeb app
     } else if (isPageData(url.pathname)) {
-      	console.log("Page data detected:", url.pathname);
-	console.log("Referer:", referer);
+      console.log("Page data detected:", url.pathname);
+      console.log("Referer:", referer);
 
       // Fetch the source data content
       const sourceResponse = await fetch(`${domainSource}${url.pathname}`);
@@ -117,7 +146,7 @@ export default {
             sourceData.page.meta.keywords.en = metadata.keywords;
           }
 
-	  console.log("returning file: ", JSON.stringify(sourceData));
+          console.log("returning file: ", JSON.stringify(sourceData));
           // Return the modified JSON object
           return new Response(JSON.stringify(sourceData), {
             headers: { 'Content-Type': 'application/json' }
@@ -214,7 +243,7 @@ class CustomHeaderHandler {
         console.log('Removing noindex tag');
         element.remove();
       }
-	    
+
     }
   }
 }
