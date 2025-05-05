@@ -64,17 +64,29 @@ export default {
       // const finalUrl = `https://lccdbeogxyozaxntzhqe.supabase.co/functions/v1/getMetaExperience/${id}`;
 
       // Fetch metadata using the updated URL
-      const metaDataResponse = await fetch(metaDataEndpointWithId, {
-        method: 'POST',
-        headers: {
-          'Authorization': 'Bearer ' + env.SUPABASE_KEY,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({ name: 'Functions' })
-      });
+      try {
+        const metaDataResponse = await fetch(metaDataEndpointWithId, {
+          method: 'POST',
+          headers: {
+            'Authorization': 'Bearer ' + env.SUPABASE_KEY,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({ name: 'Functions' })
+        });
 
-      const metadata = await metaDataResponse.json();
-      return metadata;
+        // Check if the response is valid JSON
+        if (!metaDataResponse.ok) {
+          console.error(`Error fetching metadata: ${metaDataResponse.status} ${metaDataResponse.statusText}`);
+          const errorText = await metaDataResponse.text();
+          console.error(`Response body: ${errorText}`);
+          throw new Error(`Failed to fetch metadata: ${metaDataResponse.status}`);
+        }
+
+        return await metaDataResponse.json();
+      } catch (error) {
+        console.error('Error in requestMetadata:', error);
+        throw error;
+      }
     }
 
     // Handle dynamic page requests
