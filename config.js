@@ -3,7 +3,7 @@ export const config = {
     patterns: [
         {
             pattern: "/provider/[^/]+",
-            metaDataEndpoint: "https://lccdbeogxyozaxntzhqe.supabase.co/functions/v1/getMetaExperience/{slug}"
+            metaDataEndpoint: "https://lccdbeogxyozaxntzhqe.supabase.co/functions/v1/getMetaProvider/{slug}"
         },
         {
             pattern: "/experience/[^/]+",
