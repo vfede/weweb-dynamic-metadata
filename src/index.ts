@@ -61,7 +61,7 @@ export default {
       const metaDataEndpointWithId = metaDataEndpoint.replace(placeholderPattern, id);
 
       // Construct the final URL
-      // const finalUrl = `https://lccdbeogxyozaxntzhqe.supabase.co/functions/v1/getMetaExperience/${id}`;
+      // const finalUrl = `https://lccdbeogxyozaxntzhqe.supabase.co/functions/v1/getMetaExperience/{id}`;
 
       // Fetch metadata using the updated URL
       try {
@@ -82,7 +82,8 @@ export default {
           throw new Error(`Failed to fetch metadata: ${metaDataResponse.status}`);
         }
 
-        return await metaDataResponse.json();
+        // Supabase returns an array, so we need to access the first element
+        return (await metaDataResponse.json())[0];
       } catch (error) {
         console.error('Error in requestMetadata:', error);
         throw error;
