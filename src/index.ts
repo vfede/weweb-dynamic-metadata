@@ -63,8 +63,6 @@ export default {
       // Construct the final URL
       // const finalUrl = `https://lccdbeogxyozaxntzhqe.supabase.co/functions/v1/getMetaExperience/${id}`;
 
-      console.log("MetaData Endpoint:", metaDataEndpointWithId);
-
       // Fetch metadata using the updated URL
       try {
         const metaDataResponse = await fetch(metaDataEndpointWithId, {
