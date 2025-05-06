@@ -30,24 +30,6 @@ export default {
       return pattern.test(url);
     }
 
-    // async function requestMetadata(url, metaDataEndpoint) {
-    //   // Remove any trailing slash from the URL
-    //   const trimmedUrl = url.endsWith('/') ? url.slice(0, -1) : url;
-
-    //   // Split the trimmed URL by '/' and get the last part: The id
-    //   const parts = trimmedUrl.split('/');
-    //   const id = parts[parts.length - 1];
-
-    //   // Replace the placeholder in metaDataEndpoint with the actual id
-    //   const placeholderPattern = /{([^}]+)}/;
-    //   const metaDataEndpointWithId = metaDataEndpoint.replace(placeholderPattern, id);
-
-    //   // Fetch metadata from the API endpoint
-    //   const metaDataResponse = await fetch(metaDataEndpointWithId);
-    //   const metadata = await metaDataResponse.json();
-    //   return metadata;
-    // }
-
     async function requestMetadata(url, metaDataEndpoint) {
       // Remove any trailing slash from the URL
       const trimmedUrl = url.endsWith('/') ? url.slice(0, -1) : url;
@@ -89,86 +71,93 @@ export default {
         throw error;
       }
     }
+    // END of async function requestMetadata(url, metaDataEndpoint)
 
-    // Handle dynamic page requests
+
+    // Handle dynamic page requests on main fetch
     const patternConfig = getPatternConfig(url.pathname);
-    if (patternConfig) {
-      console.log("Dynamic page detected:", url.pathname);
+    try {
+      if (patternConfig) {
+        console.log("Dynamic page detected:", url.pathname);
 
-      // Fetch the source page content
-      let source = await fetch(`${domainSource}${url.pathname}`);
+        // Fetch the source page content
+        let source = await fetch(`${domainSource}${url.pathname}`);
 
-      // Remove "X-Robots-Tag" from the headers
-      const sourceHeaders = new Headers(source.headers);
-      sourceHeaders.delete('X-Robots-Tag');
-      source = new Response(source.body, {
-        status: source.status,
-        headers: sourceHeaders
-      });
+        // Remove "X-Robots-Tag" from the headers
+        const sourceHeaders = new Headers(source.headers);
+        sourceHeaders.delete('X-Robots-Tag');
+        source = new Response(source.body, {
+          status: source.status,
+          headers: sourceHeaders
+        });
 
-      const metadata = await requestMetadata(url.pathname, patternConfig.metaDataEndpoint);
-      console.log("Metadata fetched:", metadata);
+        const metadata = await requestMetadata(url.pathname, patternConfig.metaDataEndpoint);
+        console.log("Metadata fetched:", metadata);
 
-      // Create a custom header handler with the fetched metadata
-      const customHeaderHandler = new CustomHeaderHandler(metadata);
+        // Create a custom header handler with the fetched metadata
+        const customHeaderHandler = new CustomHeaderHandler(metadata);
 
-      // Transform the source HTML with the custom headers
-      return new HTMLRewriter()
-        .on('*', customHeaderHandler)
-        .transform(source);
+        // Transform the source HTML with the custom headers
+        return new HTMLRewriter()
+          .on('*', customHeaderHandler)
+          .transform(source);
 
-      // Handle page data requests for the WeWeb app
-    } else if (isPageData(url.pathname)) {
-      console.log("Page data detected:", url.pathname);
-      console.log("Referer:", referer);
+        // Handle page data requests for the WeWeb app
+      } else if (isPageData(url.pathname)) {
+        console.log("Page data detected:", url.pathname);
+        console.log("Referer:", referer);
 
-      // Fetch the source data content
-      const sourceResponse = await fetch(`${domainSource}${url.pathname}`);
-      let sourceData = await sourceResponse.json();
+        // Fetch the source data content
+        const sourceResponse = await fetch(`${domainSource}${url.pathname}`);
+        let sourceData = await sourceResponse.json();
 
-      let pathname = referer;
-      pathname = pathname ? pathname + (pathname.endsWith('/') ? '' : '/') : null;
-      if (pathname !== null) {
-        const patternConfigForPageData = getPatternConfig(pathname);
-        if (patternConfigForPageData) {
-          const metadata = await requestMetadata(pathname, patternConfigForPageData.metaDataEndpoint);
-          console.log("Metadata fetched:", metadata);
+        let pathname = referer;
+        pathname = pathname ? pathname + (pathname.endsWith('/') ? '' : '/') : null;
+        if (pathname !== null) {
+          const patternConfigForPageData = getPatternConfig(pathname);
+          if (patternConfigForPageData) {
+            const metadata = await requestMetadata(pathname, patternConfigForPageData.metaDataEndpoint);
+            console.log("Metadata fetched:", metadata);
 
-          // Ensure nested objects exist in the source data
-          sourceData.page = sourceData.page || {};
-          sourceData.page.title = sourceData.page.title || {};
-          sourceData.page.meta = sourceData.page.meta || {};
-          sourceData.page.meta.desc = sourceData.page.meta.desc || {};
-          sourceData.page.meta.keywords = sourceData.page.meta.keywords || {};
-          sourceData.page.socialTitle = sourceData.page.socialTitle || {};
-          sourceData.page.socialDesc = sourceData.page.socialDesc || {};
+            // Ensure nested objects exist in the source data
+            sourceData.page = sourceData.page || {};
+            sourceData.page.title = sourceData.page.title || {};
+            sourceData.page.meta = sourceData.page.meta || {};
+            sourceData.page.meta.desc = sourceData.page.meta.desc || {};
+            sourceData.page.meta.keywords = sourceData.page.meta.keywords || {};
+            sourceData.page.socialTitle = sourceData.page.socialTitle || {};
+            sourceData.page.socialDesc = sourceData.page.socialDesc || {};
 
-          // Update source data with the fetched metadata
-          if (metadata.title) {
-            sourceData.page.title.en = metadata.title;
-            sourceData.page.socialTitle.en = metadata.title;
+            // Update source data with the fetched metadata
+            if (metadata.title) {
+              sourceData.page.title.en = metadata.title;
+              sourceData.page.socialTitle.en = metadata.title;
+            }
+            if (metadata.description) {
+              sourceData.page.meta.desc.en = metadata.description;
+              sourceData.page.socialDesc.en = metadata.description;
+            }
+            if (metadata.image) {
+              sourceData.page.metaImage = metadata.image;
+            }
+            if (metadata.keywords) {
+              sourceData.page.meta.keywords.en = metadata.keywords;
+            }
+
+            console.log("returning file: ", JSON.stringify(sourceData));
+            // Return the modified JSON object
+            return new Response(JSON.stringify(sourceData), {
+              headers: { 'Content-Type': 'application/json' }
+            });
           }
-          if (metadata.description) {
-            sourceData.page.meta.desc.en = metadata.description;
-            sourceData.page.socialDesc.en = metadata.description;
-          }
-          if (metadata.image) {
-            sourceData.page.metaImage = metadata.image;
-          }
-          if (metadata.keywords) {
-            sourceData.page.meta.keywords.en = metadata.keywords;
-          }
-
-          console.log("returning file: ", JSON.stringify(sourceData));
-          // Return the modified JSON object
-          return new Response(JSON.stringify(sourceData), {
-            headers: { 'Content-Type': 'application/json' }
-          });
         }
       }
     }
+    catch (error) {
+      console.error("Error processing request, skipping metadata:", error);
+    }
 
-    // If the URL does not match any patterns, fetch and return the original content
+    // If the URL does not match any patterns or an error was thrown, fetch and return the original content
     console.log("Fetching original content for:", url.pathname);
     const sourceUrl = new URL(`${domainSource}${url.pathname}`);
     const sourceRequest = new Request(sourceUrl, request);
