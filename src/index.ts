@@ -64,8 +64,7 @@ export default {
           throw new Error(`Failed to fetch metadata: ${metaDataResponse.status}`);
         }
 
-        // Supabase returns an array, so we need to access the first element
-        return (await metaDataResponse.json())[0];
+        return (await metaDataResponse.json());
       } catch (error) {
         console.error('Error in requestMetadata:', error);
         throw error;
